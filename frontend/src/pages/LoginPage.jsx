@@ -4,7 +4,7 @@ import axios from "axios";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { userContext } from "../context/authContext.jsx";
+import { useAuth } from "../context/authContext";
 import { useNavigate } from "react-router-dom";
 
 
@@ -23,7 +23,7 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [serverError, setServerError] = useState("");
   const [loading, setLoading] = useState(false);
-  const { login } = useContext(userContext);
+  const { login } = useAuth();
   const navigate = useNavigate();
 
   const baseUrl = import.meta.env.VITE_SERVER_URL;

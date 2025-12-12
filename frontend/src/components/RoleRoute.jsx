@@ -1,9 +1,9 @@
 import React, { useContext } from 'react';
 import { Navigate } from 'react-router-dom';
-import { userContext } from '../context/authContext.jsx';
+import { useAuth } from '../context/authContext.jsx';
 
 const RoleRoute = ({ children, allowedRoles }) => {
-  const { user, loading } = useContext(userContext);
+  const { user, loading } = useAuth();
 
   if (loading) {
     return <div>Loading...</div>; // or a spinner
