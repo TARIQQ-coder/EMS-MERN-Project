@@ -1,0 +1,40 @@
+// src/components/departments/DepartmentTable.jsx
+import { Edit2, Trash2 } from "lucide-react";
+
+export default function DepartmentTable({ departments, onEdit, onDelete }) {
+  return (
+    <div className="bg-white rounded-2xl shadow-lg overflow-hidden">
+      <div className="overflow-x-auto">
+        <table className="w-full">
+          <thead className="bg-gray-50 border-b">
+            <tr>
+              <th className="text-left py-4 px-6 font-medium text-gray-700">Name</th>
+              <th className="text-left py-4 px-6 font-medium text-gray-700">Head</th>
+              <th className="text-left py-4 px-6 font-medium text-gray-700">Employees</th>
+              <th className="text-left py-4 px-6 font-medium text-gray-700">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {departments.map((dept) => (
+              <tr key={dept.id} className="border-b hover:bg-gray-50">
+                <td className="py-4 px-6 font-medium">{dept.name}</td>
+                <td className="py-4 px-6 text-gray-600">{dept.head || "-"}</td>
+                <td className="py-4 px-6 text-gray-600">{dept.employees || 0}</td>
+                <td className="py-4 px-6">
+                  <div className="flex gap-3">
+                    <button onClick={() => onEdit(dept)} className="text-purple-600 hover:text-purple-800">
+                      <Edit2 className="w-5 h-5" />
+                    </button>
+                    <button onClick={() => onDelete(dept)} className="text-red-600 hover:text-red-800">
+                      <Trash2 className="w-5 h-5" />
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}

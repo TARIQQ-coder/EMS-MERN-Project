@@ -11,24 +11,23 @@ import {
   User,
 } from "lucide-react";
 
-// Import your Auth Context
 import { useAuth } from "../../context/authContext.jsx";
 
 const navigation = [
-  { name: "Dashboard", href: "/admin", icon: LayoutDashboard },
-  { name: "Employee", href: "/admin/employees", icon: Users },
-  { name: "Department", href: "/admin/departments", icon: Building2 },
-  { name: "Leave", href: "/admin/leaves", icon: CalendarDays },
-  { name: "Salary", href: "/admin/salary", icon: DollarSign },
-  { name: "Settings", href: "/admin/settings", icon: Settings },
+  { name: "Dashboard", href: "/admin-dashboard", icon: LayoutDashboard, end: true },
+  { name: "Employee", href: "/admin-dashboard/employees", icon: Users },
+  { name: "Department", href: "/admin-dashboard/departments", icon: Building2 },
+  { name: "Leave", href: "/admin-dashboard/leaves", icon: CalendarDays },
+  { name: "Salary", href: "/admin-dashboard/salary", icon: DollarSign },
+  { name: "Settings", href: "/admin-dashboard/settings", icon: Settings },
 ];
 
 export default function AdminSidebar() {
-  const { user, logout } = useAuth(); // Get user and logout function from context
+  const { user, logout } = useAuth();
   const navigate = useNavigate();
 
   const handleLogout = () => {
-    logout(); // Clears token from localStorage/context
+    logout();
     navigate("/login", { replace: true });
   };
 
@@ -57,6 +56,7 @@ export default function AdminSidebar() {
             <NavLink
               key={item.name}
               to={item.href}
+              end={item.end}  // ← Only applies to Dashboard for exact match
               className={({ isActive }) =>
                 `flex items-center gap-4 px-5 py-4 rounded-xl text-sm font-medium transition-all duration-200 group ${
                   isActive
@@ -87,7 +87,6 @@ export default function AdminSidebar() {
 
       {/* User Profile + Logout */}
       <div className="border-t border-purple-600 p-4">
-        {/* Current Admin Info */}
         <div className="flex items-center gap-3 px-5 py-3 mb-3">
           <div className="w-10 h-10 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center">
             <User className="w-6 h-6 text-white" />
@@ -102,7 +101,6 @@ export default function AdminSidebar() {
           </div>
         </div>
 
-        {/* Logout Button */}
         <button
           onClick={handleLogout}
           className="w-full flex items-center gap-4 px-5 py-4 rounded-xl text-purple-100 hover:bg-red-600/20 hover:text-white transition-all group"
