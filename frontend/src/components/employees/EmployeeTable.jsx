@@ -2,17 +2,25 @@
 import { Edit2, Trash2 } from "lucide-react";
 
 export default function EmployeeTable({ employees, onEdit, onDelete }) {
+  const formatCurrency = (amount) => {
+    return new Intl.NumberFormat("en-IN", {
+      style: "currency",
+      currency: "INR",
+      maximumFractionDigits: 0,
+    }).format(amount || 0);
+  };
+
   return (
     <div className="bg-white rounded-2xl shadow-lg overflow-hidden">
       <div className="overflow-x-auto">
         <table className="w-full">
           <thead className="bg-gray-50 border-b">
             <tr>
-              <th className="text-left py-4 px-6 font-medium text-gray-700">Photo</th>
               <th className="text-left py-4 px-6 font-medium text-gray-700">Name</th>
               <th className="text-left py-4 px-6 font-medium text-gray-700">Email</th>
               <th className="text-left py-4 px-6 font-medium text-gray-700">Department</th>
               <th className="text-left py-4 px-6 font-medium text-gray-700">Role</th>
+              <th className="text-left py-4 px-6 font-medium text-gray-700">Salary</th>
               <th className="text-left py-4 px-6 font-medium text-gray-700">Join Date</th>
               <th className="text-left py-4 px-6 font-medium text-gray-700">Actions</th>
             </tr>
@@ -26,18 +34,16 @@ export default function EmployeeTable({ employees, onEdit, onDelete }) {
               </tr>
             ) : (
               employees.map((emp) => (
-                <tr key={emp._id || emp.id} className="border-b hover:bg-gray-50 transition">
-                  <td className="py-4 px-6">
-                    <div className="w-12 h-12 bg-linear-to-br from-purple-400 to-purple-600 rounded-full flex items-center justify-center text-white font-bold text-lg">
-                      {emp.name?.charAt(0).toUpperCase() || "E"}
-                    </div>
-                  </td>
+                <tr key={emp._id} className="border-b hover:bg-gray-50 transition">
                   <td className="py-4 px-6 font-medium">{emp.name}</td>
                   <td className="py-4 px-6 text-gray-600">{emp.email}</td>
                   <td className="py-4 px-6 text-gray-600">{emp.department?.name || "-"}</td>
-                  <td className="py-4 px-6 text-gray-600">{emp.role || "Employee"}</td>
+                  <td className="py-4 px-6 text-gray-600">{emp.role}</td>
+                  <td className="py-4 px-6 font-medium text-purple-700">
+                    {formatCurrency((emp.baseSalary || 0) + (emp.bonus || 0))}
+                  </td>
                   <td className="py-4 px-6 text-gray-600">
-                    {emp.joinDate ? new Date(emp.joinDate).toLocaleDateString() : "-"}
+                    {new Date(emp.joinDate).toLocaleDateString()}
                   </td>
                   <td className="py-4 px-6">
                     <div className="flex gap-3">

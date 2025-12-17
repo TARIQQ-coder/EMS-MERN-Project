@@ -27,10 +27,36 @@ const employeeSchema = new mongoose.Schema({
     type: Date,
     required: true,
   },
+  baseSalary: {
+    type: Number,
+    required: true,
+    min: 0,
+  },
+  bonus: {
+    type: Number,
+    default: 0,
+    min: 0,
+  },
   createdAt: {
     type: Date,
     default: Date.now,
   },
+});
+
+employeeSchema.pre("save", async function (next) {
+  if (this.isModified("department")) {
+    // Update old department count if changing department
+    if (this._previousDepartment) {
+      await this.model("Department").findByIdAndUpdate(this._previousDepartment, { $inc: { employeeCount: -1 } });
+    }
+    await this.model("Department").findByIdAndUpdate(this.department, { $inc: { employeeCount: 1 } });
+  }
+  next();
+});
+
+employeeSchema.pre("deleteOne", { document: true }, async function (next) {
+  await this.model("Department").findByIdAndUpdate(this.department, { $inc: { employeeCount: -1 } });
+  next();
 });
 
 export default mongoose.model("Employee", employeeSchema);

@@ -1,9 +1,16 @@
-// src/components/employees/EmployeeForm.jsx
+// src/components/salary/SalaryForm.jsx
 import React from "react";
 import { useQuery } from "@tanstack/react-query";
+import { employeeService } from "../../services/employeeService";
 import { departmentService } from "../../services/departmentService";
 
-export default function EmployeeForm({ employee, onSubmit, onCancel }) {
+export default function SalaryForm({ salary, onSubmit, onCancel }) {
+  const { data: employees = [] } = useQuery({
+    queryKey: ["employees"],
+    queryFn: employeeService.getAll,
+    select: (res) => res.data,
+  });
+
   const { data: departments = [] } = useQuery({
     queryKey: ["departments"],
     queryFn: departmentService.getAll,
@@ -14,13 +21,10 @@ export default function EmployeeForm({ employee, onSubmit, onCancel }) {
     e.preventDefault();
     const formData = new FormData(e.target);
     const data = {
-      name: formData.get("name"),
-      email: formData.get("email"),
+      employee: formData.get("employee"),
       department: formData.get("department"),
-      role: formData.get("role"),
-      joinDate: formData.get("joinDate"),
       baseSalary: Number(formData.get("baseSalary")),
-      bonus: Number(formData.get("bonus") || 0),
+      bonus: Number(formData.get("bonus")),
     };
     onSubmit(data);
   };
@@ -28,32 +32,27 @@ export default function EmployeeForm({ employee, onSubmit, onCancel }) {
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">Full Name</label>
-        <input
-          name="name"
-          type="text"
-          defaultValue={employee?.name || ""}
+        <label className="block text-sm font-medium text-gray-700 mb-2">Employee</label>
+        <select
+          name="employee"
+          defaultValue={salary?.employee?._id || ""}
           required
           className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500"
-        />
-      </div>
-
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">Email</label>
-        <input
-          name="email"
-          type="email"
-          defaultValue={employee?.email || ""}
-          required
-          className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500"
-        />
+        >
+          <option value="">Select Employee</option>
+          {employees.map((emp) => (
+            <option key={emp._id} value={emp._id}>
+              {emp.name} ({emp.email})
+            </option>
+          ))}
+        </select>
       </div>
 
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-2">Department</label>
         <select
           name="department"
-          defaultValue={employee?.department?._id || ""}
+          defaultValue={salary?.department?._id || ""}
           required
           className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500"
         >
@@ -67,51 +66,24 @@ export default function EmployeeForm({ employee, onSubmit, onCancel }) {
       </div>
 
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">Role</label>
-        <select
-          name="role"
-          defaultValue={employee?.role || "Employee"}
-          className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500"
-        >
-          <option value="Employee">Employee</option>
-          <option value="Manager">Manager</option>
-          <option value="Admin">Admin</option>
-        </select>
-      </div>
-
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">Join Date</label>
-        <input
-          name="joinDate"
-          type="date"
-          defaultValue={employee?.joinDate ? new Date(employee.joinDate).toISOString().split("T")[0] : ""}
-          required
-          className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500"
-        />
-      </div>
-
-      {/* Salary Fields */}
-      <div>
         <label className="block text-sm font-medium text-gray-700 mb-2">Base Salary (₹)</label>
         <input
           name="baseSalary"
           type="number"
-          defaultValue={employee?.baseSalary || ""}
+          defaultValue={salary?.baseSalary || ""}
           required
           min="0"
-          step="1000"
           className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500"
         />
       </div>
 
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">Bonus (₹, optional)</label>
+        <label className="block text-sm font-medium text-gray-700 mb-2">Bonus (₹)</label>
         <input
           name="bonus"
           type="number"
-          defaultValue={employee?.bonus || 0}
+          defaultValue={salary?.bonus || 0}
           min="0"
-          step="1000"
           className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500"
         />
       </div>
@@ -121,7 +93,7 @@ export default function EmployeeForm({ employee, onSubmit, onCancel }) {
           Cancel
         </button>
         <button type="submit" className="px-6 py-3 bg-purple-700 hover:bg-purple-800 text-white rounded-xl transition">
-          {employee ? "Update" : "Add"} Employee
+          {salary ? "Update" : "Add"} Salary
         </button>
       </div>
     </form>

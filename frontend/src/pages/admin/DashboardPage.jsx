@@ -1,7 +1,78 @@
-import React from 'react';
-import { Users, Building2, DollarSign, FileText, Clock, CheckCircle, XCircle, Calendar } from 'lucide-react';
+// src/pages/admin/DashboardPage.jsx
+import React from "react";
+import { useQuery } from "@tanstack/react-query";
+import {
+  Users,
+  Building2,
+  DollarSign,
+  FileText,
+  Clock,
+  CheckCircle,
+  XCircle,
+  Calendar,
+} from "lucide-react";
+
+import { employeeService } from "../../services/employeeService";
+import { departmentService } from "../../services/departmentService";
+import { salaryService } from "../../services/salaryService";
+import { leaveService } from "../../services/leaveService";
 
 const DashboardPage = () => {
+  // Fetch real data from MongoDB Atlas
+  const { data: employees = [] } = useQuery({
+    queryKey: ["employees"],
+    queryFn: employeeService.getAll,
+    select: (res) => res.data || [],
+  });
+
+  const { data: departments = [] } = useQuery({
+    queryKey: ["departments"],
+    queryFn: departmentService.getAll,
+    select: (res) => res.data || [],
+  });
+
+  const { data: salaries = [] } = useQuery({
+    queryKey: ["salaries"],
+    queryFn: salaryService.getAll,
+    select: (res) => res.data || [],
+  });
+
+  const { data: leaves = [] } = useQuery({
+    queryKey: ["leaves"],
+    queryFn: leaveService.getAll,
+    select: (res) => res.data || [],
+  });
+
+  // Calculate real stats
+  const totalEmployees = employees.length;
+  const totalDepartments = departments.length;
+
+  const totalMonthlySalary = salaries.reduce(
+    (sum, s) => sum + (s.baseSalary || 0) + (s.bonus || 0),
+    0
+  );
+
+  const leaveStats = {
+    applied: leaves.length,
+    pending: leaves.filter((l) => l.status === "Pending").length,
+    approved: leaves.filter((l) => l.status === "Approved").length,
+    rejected: leaves.filter((l) => l.status === "Rejected").length,
+  };
+
+  // Format large numbers
+  const formatSalary = (amount) => {
+    if (amount >= 1000000) {
+      return `$${(amount / 1000000).toFixed(1)}M`;
+    }
+    return `$${amount.toLocaleString()}`;
+  };
+
+  // Hardcoded "On Leave Today" and others — you can make these dynamic later
+  const onLeaveToday = 8;
+  const presentToday = totalEmployees - onLeaveToday;
+  const lateArrivals = 5;
+  const pendingTasks = 12;
+
   return (
     <div className="p-6 bg-gray-50 min-h-screen">
       {/* Dashboard Title */}
@@ -16,7 +87,7 @@ const DashboardPage = () => {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-gray-600 mb-1">Total Employees</p>
-              <p className="text-3xl font-bold text-gray-800">248</p>
+              <p className="text-3xl font-bold text-gray-800">{totalEmployees}</p>
               <p className="text-xs text-green-600 mt-2">↑ 12% from last month</p>
             </div>
             <div className="bg-blue-100 p-3 rounded-lg">
@@ -29,7 +100,7 @@ const DashboardPage = () => {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-gray-600 mb-1">Total Departments</p>
-              <p className="text-3xl font-bold text-gray-800">12</p>
+              <p className="text-3xl font-bold text-gray-800">{totalDepartments}</p>
               <p className="text-xs text-gray-500 mt-2">Active departments</p>
             </div>
             <div className="bg-purple-100 p-3 rounded-lg">
@@ -42,7 +113,7 @@ const DashboardPage = () => {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-gray-600 mb-1">Total Salary</p>
-              <p className="text-3xl font-bold text-gray-800">$2.4M</p>
+              <p className="text-3xl font-bold text-gray-800">{formatSalary(totalMonthlySalary)}</p>
               <p className="text-xs text-gray-500 mt-2">Monthly payroll</p>
             </div>
             <div className="bg-green-100 p-3 rounded-lg">
@@ -63,7 +134,7 @@ const DashboardPage = () => {
               </div>
               <p className="text-sm font-medium text-gray-600">Leave Applied</p>
             </div>
-            <p className="text-2xl font-bold text-gray-800">42</p>
+            <p className="text-2xl font-bold text-gray-800">{leaveStats.applied}</p>
           </div>
 
           <div className="bg-white rounded-lg p-5 shadow-sm border border-gray-200">
@@ -73,7 +144,7 @@ const DashboardPage = () => {
               </div>
               <p className="text-sm font-medium text-gray-600">Pending</p>
             </div>
-            <p className="text-2xl font-bold text-gray-800">18</p>
+            <p className="text-2xl font-bold text-gray-800">{leaveStats.pending}</p>
           </div>
 
           <div className="bg-white rounded-lg p-5 shadow-sm border border-gray-200">
@@ -83,7 +154,7 @@ const DashboardPage = () => {
               </div>
               <p className="text-sm font-medium text-gray-600">Approved</p>
             </div>
-            <p className="text-2xl font-bold text-gray-800">20</p>
+            <p className="text-2xl font-bold text-gray-800">{leaveStats.approved}</p>
           </div>
 
           <div className="bg-white rounded-lg p-5 shadow-sm border border-gray-200">
@@ -93,7 +164,7 @@ const DashboardPage = () => {
               </div>
               <p className="text-sm font-medium text-gray-600">Rejected</p>
             </div>
-            <p className="text-2xl font-bold text-gray-800">4</p>
+            <p className="text-2xl font-bold text-gray-800">{leaveStats.rejected}</p>
           </div>
         </div>
       </div>
@@ -148,7 +219,7 @@ const DashboardPage = () => {
                 <Calendar className="w-5 h-5 text-gray-600" />
                 <span className="text-sm font-medium text-gray-700">On Leave Today</span>
               </div>
-              <span className="text-lg font-bold text-gray-800">8</span>
+              <span className="text-lg font-bold text-gray-800">{onLeaveToday}</span>
             </div>
 
             <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
@@ -156,7 +227,7 @@ const DashboardPage = () => {
                 <Users className="w-5 h-5 text-gray-600" />
                 <span className="text-sm font-medium text-gray-700">Present Today</span>
               </div>
-              <span className="text-lg font-bold text-gray-800">235</span>
+              <span className="text-lg font-bold text-gray-800">{presentToday}</span>
             </div>
 
             <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
@@ -164,7 +235,7 @@ const DashboardPage = () => {
                 <Clock className="w-5 h-5 text-gray-600" />
                 <span className="text-sm font-medium text-gray-700">Late Arrivals</span>
               </div>
-              <span className="text-lg font-bold text-gray-800">5</span>
+              <span className="text-lg font-bold text-gray-800">{lateArrivals}</span>
             </div>
 
             <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
@@ -172,7 +243,7 @@ const DashboardPage = () => {
                 <FileText className="w-5 h-5 text-gray-600" />
                 <span className="text-sm font-medium text-gray-700">Pending Tasks</span>
               </div>
-              <span className="text-lg font-bold text-gray-800">12</span>
+              <span className="text-lg font-bold text-gray-800">{pendingTasks}</span>
             </div>
           </div>
         </div>
