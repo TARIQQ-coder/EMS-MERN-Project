@@ -5,6 +5,7 @@ import authRoutes from './routes/auth.route.mjs';
 import departmentRoutes from './routes/departments.route.mjs';
 import connectDB from './db/db.mjs';
 import cookieParser from 'cookie-parser';
+import employeeRoutes from './routes/employee.route.mjs';
 
 
 const app = express();
@@ -18,8 +19,11 @@ app.use(cookieParser());
 
 app.use('/api/auth', authRoutes);
 app.use('/api/departments', departmentRoutes);
+app.use('/api/employees', employeeRoutes);
 
 const PORT = process.env.PORT || 3000;
+
+
 
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
