@@ -1,7 +1,14 @@
 // src/components/departments/DepartmentTable.jsx
-import { Edit2, Trash2 } from "lucide-react";
+import { Edit2, Trash2, Users } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 export default function DepartmentTable({ departments, onEdit, onDelete }) {
+  const navigate = useNavigate();
+
+  const handleRowClick = (dept) => {
+    navigate(`/admin-dashboard/departments/${dept._id}`);
+  };
+
   return (
     <div className="bg-white rounded-2xl shadow-lg overflow-hidden">
       <div className="overflow-x-auto">
@@ -23,13 +30,20 @@ export default function DepartmentTable({ departments, onEdit, onDelete }) {
               </tr>
             ) : (
               departments.map((dept) => (
-                <tr key={dept._id || dept.id} className="border-b hover:bg-gray-50 transition">
+                <tr 
+                  key={dept._id} 
+                  className="border-b hover:bg-purple-50 transition cursor-pointer"
+                  onClick={() => handleRowClick(dept)}
+                >
                   <td className="py-4 px-6 font-medium">{dept.name}</td>
                   <td className="py-4 px-6 text-gray-600">{dept.head || "-"}</td>
-                  <td className="py-4 px-6 text-gray-600 font-semibold text-lg">
-                    {dept.employeeCount || 0}
-                  </td>
                   <td className="py-4 px-6">
+                    <div className="flex items-center gap-2">
+                      <Users className="w-5 h-5 text-purple-600" />
+                      <span className="font-semibold">{dept.employeeCount || 0}</span>
+                    </div>
+                  </td>
+                  <td className="py-4 px-6" onClick={(e) => e.stopPropagation()}>
                     <div className="flex gap-3">
                       <button onClick={() => onEdit(dept)} className="text-purple-600 hover:text-purple-800 transition">
                         <Edit2 className="w-5 h-5" />

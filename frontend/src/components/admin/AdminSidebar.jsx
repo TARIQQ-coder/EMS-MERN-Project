@@ -1,24 +1,30 @@
-// components/AdminSidebar.jsx
+// src/components/AdminSidebar.jsx
 import { NavLink, useNavigate } from "react-router-dom";
 import {
   LayoutDashboard,
   Users,
   Building2,
   CalendarDays,
+  ClipboardCheck,
   DollarSign,
+  FileText,
   Settings,
   LogOut,
   User,
+  Shield,
 } from "lucide-react";
 
 import { useAuth } from "../../context/authContext.jsx";
 
 const navigation = [
   { name: "Dashboard", href: "/admin-dashboard", icon: LayoutDashboard, end: true },
-  { name: "Employee", href: "/admin-dashboard/employees", icon: Users },
-  { name: "Department", href: "/admin-dashboard/departments", icon: Building2 },
-  { name: "Leave", href: "/admin-dashboard/leaves", icon: CalendarDays },
-  { name: "Salary", href: "/admin-dashboard/salary", icon: DollarSign },
+  { name: "Employees", href: "/admin-dashboard/employees", icon: Users },
+  { name: "Departments", href: "/admin-dashboard/departments", icon: Building2 },
+  { name: "Leave Management", href: "/admin-dashboard/leaves", icon: CalendarDays },
+  { name: "Attendance", href: "/admin-dashboard/attendance", icon: ClipboardCheck },
+  { name: "Payroll", href: "/admin-dashboard/payroll", icon: DollarSign },
+  { name: "Reports", href: "/admin-dashboard/reports", icon: FileText },
+  { name: "User Management", href: "/admin-dashboard/users", icon: Shield },
   { name: "Settings", href: "/admin-dashboard/settings", icon: Settings },
 ];
 
@@ -49,14 +55,14 @@ export default function AdminSidebar() {
       </div>
 
       {/* Navigation Links */}
-      <nav className="flex-1 px-4 py-6 space-y-1">
+      <nav className="flex-1 px-4 py-6 space-y-1 overflow-y-auto">
         {navigation.map((item) => {
           const Icon = item.icon;
           return (
             <NavLink
               key={item.name}
               to={item.href}
-              end={item.end}  // ← Only applies to Dashboard for exact match
+              end={item.end}
               className={({ isActive }) =>
                 `flex items-center gap-4 px-5 py-4 rounded-xl text-sm font-medium transition-all duration-200 group ${
                   isActive
@@ -68,7 +74,7 @@ export default function AdminSidebar() {
               {({ isActive }) => (
                 <>
                   <Icon
-                    className={`w-5 h-5 ${
+                    className={`w-5 h-5 shrink-0 ${
                       isActive
                         ? "text-purple-700"
                         : "text-purple-200 group-hover:text-white"

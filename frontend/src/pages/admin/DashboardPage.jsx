@@ -14,11 +14,9 @@ import {
 
 import { employeeService } from "../../services/employeeService";
 import { departmentService } from "../../services/departmentService";
-import { salaryService } from "../../services/salaryService";
 import { leaveService } from "../../services/leaveService";
 
 const DashboardPage = () => {
-  // Fetch real data from MongoDB Atlas
   const { data: employees = [] } = useQuery({
     queryKey: ["employees"],
     queryFn: employeeService.getAll,
@@ -31,24 +29,17 @@ const DashboardPage = () => {
     select: (res) => res.data || [],
   });
 
-  const { data: salaries = [] } = useQuery({
-    queryKey: ["salaries"],
-    queryFn: salaryService.getAll,
-    select: (res) => res.data || [],
-  });
-
   const { data: leaves = [] } = useQuery({
     queryKey: ["leaves"],
     queryFn: leaveService.getAll,
     select: (res) => res.data || [],
   });
 
-  // Calculate real stats
   const totalEmployees = employees.length;
   const totalDepartments = departments.length;
 
-  const totalMonthlySalary = salaries.reduce(
-    (sum, s) => sum + (s.baseSalary || 0) + (s.bonus || 0),
+  const totalMonthlySalary = employees.reduce(
+    (sum, emp) => sum + (emp.baseSalary || 0) + (emp.bonus || 0),
     0
   );
 
@@ -59,15 +50,16 @@ const DashboardPage = () => {
     rejected: leaves.filter((l) => l.status === "Rejected").length,
   };
 
-  // Format large numbers
+  // GHS formatting
   const formatSalary = (amount) => {
-    if (amount >= 1000000) {
-      return `$${(amount / 1000000).toFixed(1)}M`;
-    }
-    return `$${amount.toLocaleString()}`;
+    return new Intl.NumberFormat("en-GH", {
+      style: "currency",
+      currency: "GHS",
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    }).format(amount || 0);
   };
 
-  // Hardcoded "On Leave Today" and others — you can make these dynamic later
   const onLeaveToday = 8;
   const presentToday = totalEmployees - onLeaveToday;
   const lateArrivals = 5;

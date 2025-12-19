@@ -1,3 +1,4 @@
+// src/App.jsx
 import React from "react";
 import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -12,8 +13,9 @@ import LoginPage from "./pages/LoginPage.jsx";
 import DashboardPage from "./pages/admin/DashboardPage.jsx";
 import EmployeesPage from "./pages/admin/EmployeesPage.jsx";
 import DepartmentsPage from "./pages/admin/DepartmentsPage.jsx";
+import EmployeeDetailPage from "./pages/admin/EmployeeDetailPage.jsx";
+import DepartmentEmployeesPage from "./pages/admin/DepartmentEmployeesPage.jsx"; // ← Imported
 import LeavesPage from "./pages/admin/LeavesPage.jsx";
-import SalaryPage from "./pages/admin/SalaryPage.jsx";
 import SettingsPage from "./pages/admin/SettingsPage.jsx";
 
 // Employee Pages
@@ -44,10 +46,12 @@ function App() {
             }
           >
             <Route index element={<DashboardPage />} />                    {/* /admin-dashboard */}
-            <Route path="employees" element={<EmployeesPage />} />          {/* /admin-dashboard/employees */}
+            <Route path="employees" element={<EmployeesPage />} />        {/* /admin-dashboard/employees */}
+            <Route path="employees/:id" element={<EmployeeDetailPage />} />{/* ← New nested route for employee detail */}
             <Route path="departments" element={<DepartmentsPage />} />     {/* /admin-dashboard/departments */}
-            <Route path="leaves" element={<LeavesPage />} />               {/* /admin-dashboard/leaves */}
-            <Route path="salary" element={<SalaryPage />} />                 {/* /admin-dashboard/salary */}
+            {/* ← New nested route for department detail */}
+            <Route path="departments/:id" element={<DepartmentEmployeesPage />} />
+            <Route path="leaves" element={<LeavesPage />} />               {/* /admin-dashboard/leaves */}              {/* /admin-dashboard/salary */}
             <Route path="settings" element={<SettingsPage />} />           {/* /admin-dashboard/settings */}
           </Route>
 

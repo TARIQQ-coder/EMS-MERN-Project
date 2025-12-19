@@ -1,13 +1,12 @@
 // src/pages/admin/SettingsPage.jsx
 import React, { useState } from "react";
-import { User, Building2, Lock, Briefcase, DollarSign, Bell, Globe } from "lucide-react";
+import { User, Building2, Lock, Briefcase, DollarSign } from "lucide-react";
 
 export default function SettingsPage() {
-  // Form states (replace with real API data later)
   const [profile, setProfile] = useState({
     name: "Admin User",
     email: "admin@tombrownbabies.com",
-    phone: "+91 98765 43210",
+    phone: "+233 20 123 4567",
   });
 
   const [password, setPassword] = useState({
@@ -19,8 +18,8 @@ export default function SettingsPage() {
   const [company, setCompany] = useState({
     name: "TomBrownBabies",
     email: "info@tombrownbabies.com",
-    phone: "+91 12345 67890",
-    address: "123 Business Street, Mumbai, India",
+    phone: "+233 30 123 4567",
+    address: "123 Independence Avenue, Accra, Ghana",
     website: "www.tombrownbabies.com",
   });
 
@@ -32,14 +31,13 @@ export default function SettingsPage() {
   });
 
   const [payroll, setPayroll] = useState({
-    currency: "INR",
+    currency: "GHS", // Default to Ghana Cedis
     defaultBonus: 10,
   });
 
   const handleProfileSave = (e) => {
     e.preventDefault();
     alert("Profile updated successfully!");
-    // TODO: Connect to API
   };
 
   const handlePasswordSave = (e) => {
@@ -49,25 +47,21 @@ export default function SettingsPage() {
       return;
     }
     alert("Password changed successfully!");
-    // TODO: Connect to API
   };
 
   const handleCompanySave = (e) => {
     e.preventDefault();
     alert("Company information updated!");
-    // TODO: Connect to API
   };
 
   const handleLeaveSave = (e) => {
     e.preventDefault();
     alert("Leave policy updated!");
-    // TODO: Connect to API
   };
 
   const handlePayrollSave = (e) => {
     e.preventDefault();
     alert("Payroll settings saved!");
-    // TODO: Connect to API
   };
 
   return (
@@ -86,7 +80,7 @@ export default function SettingsPage() {
 
         <div className="flex items-center gap-8 mb-8">
           <div className="w-32 h-32 bg-linear-to-br from-purple-400 to-purple-600 rounded-full flex items-center justify-center text-white text-4xl font-bold">
-            A
+            {profile.name.charAt(0).toUpperCase()}
           </div>
           <div>
             <button className="px-6 py-3 bg-purple-700 hover:bg-purple-800 text-white rounded-xl transition">
@@ -311,7 +305,7 @@ export default function SettingsPage() {
               onChange={(e) => setPayroll({ ...payroll, currency: e.target.value })}
               className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500"
             >
-              <option value="INR">INR (₹ Indian Rupee)</option>
+              <option value="GHS">GHS (₵ Ghanaian Cedi)</option>
               <option value="USD">USD ($ US Dollar)</option>
               <option value="EUR">EUR (€ Euro)</option>
             </select>
