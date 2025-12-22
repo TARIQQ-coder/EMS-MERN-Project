@@ -1,4 +1,3 @@
-// src/controllers/employeeController.js
 import Employee from "../models/Employee.mjs";
 import Department from "../models/Department.mjs";
 
@@ -14,14 +13,28 @@ export const getEmployees = async (req, res) => {
   }
 };
 
+// Get single employee by ID
+export const getEmployeeById = async (req, res) => {
+  try {
+    const employee = await Employee.findById(req.params.id).populate("department", "name");
+    if (!employee) return res.status(404).json({ message: "Employee not found" });
+    res.json(employee);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
 // Create employee
 export const createEmployee = async (req, res) => {
-  const { name, email, department, role, joinDate, baseSalary, bonus } = req.body;
+  const { name, email, phone, gender, address, department, role, joinDate, baseSalary, bonus } = req.body;
 
   try {
     const employee = await Employee.create({
       name,
       email,
+      phone: phone || "",
+      gender: gender || "",
+      address: address || "",
       department,
       role,
       joinDate,
@@ -41,9 +54,9 @@ export const createEmployee = async (req, res) => {
   }
 };
 
-// Update employee (including salary)
+// Update employee
 export const updateEmployee = async (req, res) => {
-  const { name, email, department, role, joinDate, baseSalary, bonus } = req.body;
+  const { name, email, phone, gender, address, department, role, joinDate, baseSalary, bonus, status } = req.body;
 
   try {
     const employee = await Employee.findById(req.params.id);
@@ -51,13 +64,17 @@ export const updateEmployee = async (req, res) => {
 
     employee.name = name || employee.name;
     employee.email = email || employee.email;
+    employee.phone = phone ?? employee.phone;
+    employee.gender = gender ?? employee.gender;
+    employee.address = address ?? employee.address;
     employee.role = role || employee.role;
     employee.joinDate = joinDate || employee.joinDate;
     employee.baseSalary = baseSalary ?? employee.baseSalary;
     employee.bonus = bonus ?? employee.bonus;
+    employee.status = status ?? employee.status;
 
     if (department && department !== employee.department.toString()) {
-      employee._previousDepartment = employee.department; // For pre-save hook
+      employee._previousDepartment = employee.department;
       employee.department = department;
     }
 

@@ -6,7 +6,8 @@ axios.defaults.baseURL = import.meta.env.VITE_SERVER_URL;
 
 export const employeeService = {
   getAll: () => axios.get("/api/employees"),
+  getOne: (id) => axios.get(`/api/employees/${id}`),        // ← Fixed
   create: (data) => axios.post("/api/employees", data),
-  update: (id, data) => axios.put(`/api/employees/${id}`, data),
-  delete: (id) => axios.delete(`/api/employees/${id}`),
+  update: (id, data) => axios.put(`/api/employees/${id}`, data),  // ← Fixed
+  delete: (id) => axios.delete(`/api/employees/${id}`),           // ← Fixed
 };

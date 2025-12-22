@@ -1,18 +1,19 @@
-// src/pages/admin/EmployeesPage.jsx
 import React, { useState } from "react";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { employeeService } from "../../services/employeeService";
 import EmployeeTable from "../../components/employees/EmployeeTable";
 import EmployeeForm from "../../components/employees/EmployeeForm";
 import DepartmentModal from "../../components/departments/DepartmentModal";
 import { Loader2, Search } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import toast from "react-hot-toast"; // Optional – remove if not using
 
 const PAGE_SIZE = 10;
 
 export default function EmployeesPage() {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
+
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [currentEmployee, setCurrentEmployee] = useState(null);
@@ -35,9 +36,34 @@ export default function EmployeesPage() {
   const totalPages = Math.ceil(filteredEmployees.length / PAGE_SIZE);
   const paginatedEmployees = filteredEmployees.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
+  // Create mutation
+  const createMutation = useMutation({
+    mutationFn: employeeService.create,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["employees"] });
+      setIsAddModalOpen(false);
+      toast.success("Employee added successfully");
+    },
+    onError: (err) => {
+      toast.error(err.response?.data?.message || "Failed to add employee");
+    },
+  });
+
+  // Update mutation
+  const updateMutation = useMutation({
+    mutationFn: ({ id, data }) => employeeService.update(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["employees"] });
+      setIsEditModalOpen(false);
+      toast.success("Employee updated successfully");
+    },
+    onError: (err) => {
+      toast.error(err.response?.data?.message || "Failed to update employee");
+    },
+  });
+
   const handleAdd = (data) => {
-    // Your create mutation (add back if needed)
-    setIsAddModalOpen(false);
+    createMutation.mutate(data);
   };
 
   const handleEdit = (emp) => {
@@ -46,8 +72,7 @@ export default function EmployeesPage() {
   };
 
   const handleUpdate = (data) => {
-    // Your update mutation
-    setIsEditModalOpen(false);
+    updateMutation.mutate({ id: currentEmployee._id, data });
   };
 
   const handleRowClick = (empId) => {
@@ -109,11 +134,12 @@ export default function EmployeesPage() {
         </div>
       )}
 
-      {/* Add/Edit Modals */}
+      {/* Add Modal */}
       <DepartmentModal isOpen={isAddModalOpen} onClose={() => setIsAddModalOpen(false)} title="Add New Employee">
         <EmployeeForm onSubmit={handleAdd} onCancel={() => setIsAddModalOpen(false)} />
       </DepartmentModal>
 
+      {/* Edit Modal */}
       <DepartmentModal isOpen={isEditModalOpen} onClose={() => setIsEditModalOpen(false)} title="Edit Employee">
         <EmployeeForm employee={currentEmployee} onSubmit={handleUpdate} onCancel={() => setIsEditModalOpen(false)} />
       </DepartmentModal>
