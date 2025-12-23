@@ -12,5 +12,6 @@ export const departmentService = {
   getAll: () => axios.get("/api/departments"),
   create: (data) => axios.post("/api/departments", data),
   update: (id, data) => axios.put(`/api/departments/${id}`, data),
+  getOne: (id) => axios.get(`/api/departments/${id}`),
   delete: (id) => axios.delete(`/api/departments/${id}`),
 };

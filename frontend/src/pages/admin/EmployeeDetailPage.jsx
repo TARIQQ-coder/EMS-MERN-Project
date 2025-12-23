@@ -3,6 +3,7 @@ import React, { useState } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { employeeService } from "../../services/employeeService";
+import { departmentService } from "../../services/departmentService";
 import {
   ArrowLeft,
   Loader2,
@@ -20,21 +21,44 @@ import {
   DollarSign,
   Building2,
   Shield,
+  ArrowRightLeft,
 } from "lucide-react";
 import EmployeeForm from "../../components/employees/EmployeeForm";
 import DepartmentModal from "../../components/departments/DepartmentModal";
 import toast from "react-hot-toast";
 
+// New: leaveService (you can move to separate file later)
+const leaveService = {
+  getByEmployee: (employeeId) =>
+    axios.get(`/api/leaves?employeeId=${employeeId}`),
+};
+
 export default function EmployeeDetailPage() {
   const { id } = useParams();
   const queryClient = useQueryClient();
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isTransferModalOpen, setIsTransferModalOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("overview");
   const navigate = useNavigate();
 
+  // Fetch current employee
   const { data: employee, isLoading } = useQuery({
     queryKey: ["employee", id],
     queryFn: () => employeeService.getOne(id).then((res) => res.data),
+  });
+
+  // Fetch departments for transfer
+  const { data: departments = [] } = useQuery({
+    queryKey: ["departments"],
+    queryFn: departmentService.getAll,
+    select: (res) => res.data || [],
+  });
+
+  // New: Fetch leave history for this employee
+  const { data: leaveHistory = [], isLoading: leavesLoading } = useQuery({
+    queryKey: ["leaveHistory", id],
+    queryFn: () => leaveService.getByEmployee(id).then((res) => res.data),
+    enabled: !!id && activeTab === "leaves",
   });
 
   const updateMutation = useMutation({
@@ -42,11 +66,29 @@ export default function EmployeeDetailPage() {
     onSuccess: () => {
       queryClient.invalidateQueries(["employees"]);
       queryClient.invalidateQueries(["employee", id]);
+      queryClient.invalidateQueries(["departments"]);
       toast.success("Employee updated successfully");
       setIsEditModalOpen(false);
     },
     onError: (error) => {
       toast.error(error.response?.data?.message || "Failed to update employee");
+    },
+  });
+
+  const transferMutation = useMutation({
+    mutationFn: (newDepartmentId) =>
+      employeeService.update(id, { department: newDepartmentId }),
+    onSuccess: () => {
+      queryClient.invalidateQueries(["employees"]);
+      queryClient.invalidateQueries(["employee", id]);
+      queryClient.invalidateQueries(["departments"]);
+      toast.success("Employee transferred successfully");
+      setIsTransferModalOpen(false);
+    },
+    onError: (error) => {
+      toast.error(
+        error.response?.data?.message || "Failed to transfer employee"
+      );
     },
   });
 
@@ -68,6 +110,16 @@ export default function EmployeeDetailPage() {
     updateMutation.mutate(data);
   };
 
+  const handleTransfer = (e) => {
+    e.preventDefault();
+    const newDeptId = e.target.department.value;
+    if (newDeptId === employee.department?._id) {
+      toast.error("Employee is already in this department");
+      return;
+    }
+    transferMutation.mutate(newDeptId);
+  };
+
   const formatCurrency = (amount) =>
     new Intl.NumberFormat("en-GH", {
       style: "currency",
@@ -78,13 +130,18 @@ export default function EmployeeDetailPage() {
   const calculateTenure = (joinDate) => {
     const start = new Date(joinDate);
     const now = new Date();
-    const months = (now.getFullYear() - start.getFullYear()) * 12 + now.getMonth() - start.getMonth();
+    const months =
+      (now.getFullYear() - start.getFullYear()) * 12 +
+      now.getMonth() -
+      start.getMonth();
     const years = Math.floor(months / 12);
     const remainingMonths = months % 12;
-    
-    if (years === 0) return `${remainingMonths} month${remainingMonths !== 1 ? 's' : ''}`;
-    if (remainingMonths === 0) return `${years} year${years !== 1 ? 's' : ''}`;
-    return `${years} year${years !== 1 ? 's' : ''}, ${remainingMonths} month${remainingMonths !== 1 ? 's' : ''}`;
+
+    if (years === 0) return `${remainingMonths} month${remainingMonths !== 1 ? "s" : ""}`;
+    if (remainingMonths === 0) return `${years} year${years !== 1 ? "s" : ""}`;
+    return `${years} year${years !== 1 ? "s" : ""}, ${remainingMonths} month${
+      remainingMonths !== 1 ? "s" : ""
+    }`;
   };
 
   const statusConfig = {
@@ -129,7 +186,7 @@ export default function EmployeeDetailPage() {
     </div>
   );
 
-  if (isLoading || updateMutation.isPending) {
+  if (isLoading || updateMutation.isPending || transferMutation.isPending) {
     return (
       <div className="flex flex-col items-center justify-center py-20">
         <Loader2 className="w-12 h-12 animate-spin text-purple-700 mb-4" />
@@ -211,6 +268,14 @@ export default function EmployeeDetailPage() {
               </button>
 
               <button
+                onClick={() => setIsTransferModalOpen(true)}
+                className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-xl transition-all flex items-center gap-2 shadow-md hover:shadow-lg"
+              >
+                <ArrowRightLeft className="w-5 h-5" />
+                Transfer
+              </button>
+
+              <button
                 onClick={() => {
                   toast(
                     (t) => (
@@ -244,10 +309,10 @@ export default function EmployeeDetailPage() {
                     {
                       duration: Infinity,
                       style: {
-                        background: '#fff',
-                        color: '#000',
-                        maxWidth: '400px',
-                        padding: '16px',
+                        background: "#fff",
+                        color: "#000",
+                        maxWidth: "400px",
+                        padding: "16px",
                       },
                     }
                   );
@@ -262,10 +327,10 @@ export default function EmployeeDetailPage() {
           </div>
         </div>
 
-        {/* Tabs */}
+        {/* Tabs - NOW WITH LEAVES */}
         <div className="border-t border-gray-200 px-8">
           <div className="flex gap-8">
-            {["overview", "details", "salary"].map((tab) => (
+            {["overview", "details", "salary", "leaves"].map((tab) => (
               <button
                 key={tab}
                 onClick={() => setActiveTab(tab)}
@@ -275,7 +340,7 @@ export default function EmployeeDetailPage() {
                     : "border-transparent text-gray-500 hover:text-gray-700"
                 }`}
               >
-                {tab}
+                {tab === "leaves" ? "Leaves" : tab.charAt(0).toUpperCase() + tab.slice(1)}
               </button>
             ))}
           </div>
@@ -385,6 +450,94 @@ export default function EmployeeDetailPage() {
         </div>
       )}
 
+      {/* New: Leaves Tab */}
+      {activeTab === "leaves" && (
+        <div className="space-y-6">
+          {/* Leave Summary Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="bg-white p-6 rounded-xl shadow-md border-l-4 border-purple-500">
+              <p className="text-sm text-gray-600">Total Leaves Taken</p>
+              <p className="text-3xl font-bold text-purple-700">
+                {leaveHistory.length}
+              </p>
+            </div>
+            <div className="bg-white p-6 rounded-xl shadow-md border-l-4 border-yellow-500">
+              <p className="text-sm text-gray-600">Pending Requests</p>
+              <p className="text-3xl font-bold text-yellow-600">
+                {leaveHistory.filter(l => l.status === "Pending").length}
+              </p>
+            </div>
+            <div className="bg-white p-6 rounded-xl shadow-md border-l-4 border-green-500">
+              <p className="text-sm text-gray-600">Approved This Year</p>
+              <p className="text-3xl font-bold text-green-600">
+                {leaveHistory.filter(l => l.status === "Approved" && new Date(l.startDate).getFullYear() === new Date().getFullYear()).length}
+              </p>
+            </div>
+          </div>
+
+          {/* Leave History Table */}
+          <div className="bg-white rounded-2xl shadow-lg overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead className="bg-gray-50 border-b">
+                  <tr>
+                    <th className="text-left py-4 px-6 font-medium text-gray-700">Type</th>
+                    <th className="text-left py-4 px-6 font-medium text-gray-700">Dates</th>
+                    <th className="text-left py-4 px-6 font-medium text-gray-700">Days</th>
+                    <th className="text-left py-4 px-6 font-medium text-gray-700">Status</th>
+                    <th className="text-left py-4 px-6 font-medium text-gray-700">Applied On</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {leavesLoading ? (
+                    <tr>
+                      <td colSpan="5" className="text-center py-12">
+                        <Loader2 className="w-8 h-8 animate-spin mx-auto text-purple-600" />
+                      </td>
+                    </tr>
+                  ) : leaveHistory.length === 0 ? (
+                    <tr>
+                      <td colSpan="5" className="text-center py-12 text-gray-500">
+                        No leave history yet
+                      </td>
+                    </tr>
+                  ) : (
+                    leaveHistory.map((leave) => (
+                      <tr key={leave._id} className="border-b hover:bg-gray-50 transition">
+                        <td className="py-4 px-6 font-medium">{leave.type}</td>
+                        <td className="py-4 px-6">
+                          {new Date(leave.startDate).toLocaleDateString()} –{" "}
+                          {new Date(leave.endDate).toLocaleDateString()}
+                        </td>
+                        <td className="py-4 px-6 font-medium">{leave.daysRequested}</td>
+                        <td className="py-4 px-6">
+                          <span
+                            className={`px-3 py-1 rounded-full text-sm font-medium ${
+                              leave.status === "Approved"
+                                ? "bg-green-100 text-green-800"
+                                : leave.status === "Rejected"
+                                ? "bg-red-100 text-red-800"
+                                : leave.status === "Cancelled"
+                                ? "bg-gray-100 text-gray-800"
+                                : "bg-yellow-100 text-yellow-800"
+                            }`}
+                          >
+                            {leave.status}
+                          </span>
+                        </td>
+                        <td className="py-4 px-6">
+                          {new Date(leave.appliedAt).toLocaleDateString()}
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Edit Modal */}
       <DepartmentModal
         isOpen={isEditModalOpen}
@@ -396,6 +549,64 @@ export default function EmployeeDetailPage() {
           onSubmit={handleUpdate}
           onCancel={() => setIsEditModalOpen(false)}
         />
+      </DepartmentModal>
+
+      {/* Transfer Department Modal */}
+      <DepartmentModal
+        isOpen={isTransferModalOpen}
+        onClose={() => setIsTransferModalOpen(false)}
+        title="Transfer Employee to New Department"
+      >
+        <form onSubmit={handleTransfer} className="space-y-6">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Current Department
+            </label>
+            <p className="text-gray-800 font-medium">
+              {employee.department?.name || "Not Assigned"}
+            </p>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              New Department <span className="text-red-500">*</span>
+            </label>
+            <select
+              name="department"
+              defaultValue=""
+              required
+              className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500"
+            >
+              <option value="" disabled>
+                Select new department
+              </option>
+              {departments
+                .filter((d) => d._id !== employee.department?._id)
+                .map((dept) => (
+                  <option key={dept._id} value={dept._id}>
+                    {dept.name}
+                  </option>
+                ))}
+            </select>
+          </div>
+
+          <div className="flex justify-end gap-4">
+            <button
+              type="button"
+              onClick={() => setIsTransferModalOpen(false)}
+              className="px-6 py-3 border border-gray-300 rounded-xl hover:bg-gray-50 transition"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={transferMutation.isPending}
+              className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl transition disabled:opacity-50"
+            >
+              {transferMutation.isPending ? "Transferring..." : "Transfer"}
+            </button>
+          </div>
+        </form>
       </DepartmentModal>
     </div>
   );

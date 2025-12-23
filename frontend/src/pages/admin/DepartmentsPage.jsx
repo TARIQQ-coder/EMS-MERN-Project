@@ -2,11 +2,13 @@
 import React, { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { departmentService } from "../../services/departmentService";
+import { employeeService } from "../../services/employeeService"; // ← Add this import
 import DepartmentTable from "../../components/departments/DepartmentTable";
 import DepartmentForm from "../../components/departments/DepartmentForm";
 import DepartmentModal from "../../components/departments/DepartmentModal";
 import DeleteConfirmModal from "../../components/departments/DeleteConfirmModal";
 import { Loader2 } from "lucide-react";
+import toast from "react-hot-toast";
 
 export default function DepartmentsPage() {
   const queryClient = useQueryClient();
@@ -15,18 +17,59 @@ export default function DepartmentsPage() {
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [currentDepartment, setCurrentDepartment] = useState(null);
 
-  const { data: departments = [], isLoading, error } = useQuery({
+  // Fetch all departments
+  const { data: departments = [], isLoading: departmentsLoading } = useQuery({
     queryKey: ["departments"],
     queryFn: departmentService.getAll,
     select: (res) => res.data,
-    refetchOnMount: "always",
-    staleTime: 0,
   });
+
+  // Fetch all employees once (we'll filter by department)
+  const { data: allEmployees = [], isLoading: employeesLoading } = useQuery({
+    queryKey: ["employees"],
+    queryFn: employeeService.getAll,
+    select: (res) => res.data || [],
+  });
+
+  // Combine departments with computed stats
+  const enhancedDepartments = departments.map((dept) => {
+    const deptEmployees = allEmployees.filter(
+      (emp) => emp.department?._id === dept._id
+    );
+
+    const activeEmployees = deptEmployees.filter(
+      (emp) => emp.status === "Active"
+    ).length;
+
+    const inactiveEmployees = deptEmployees.filter(
+      (emp) =>
+        emp.status === "Suspended" || emp.status === "Resigned"
+    ).length;
+
+    const totalSalary = deptEmployees.reduce(
+      (sum, emp) => sum + (emp.baseSalary || 0) + (emp.bonus || 0),
+      0
+    );
+
+    const avgSalary =
+      deptEmployees.length > 0 ? totalSalary / deptEmployees.length : 0;
+
+    return {
+      ...dept,
+      activeEmployees,
+      inactiveEmployees,
+      avgSalary: avgSalary.toFixed(2), // We'll format nicely in table
+    };
+  });
+
+  const isLoading = departmentsLoading || employeesLoading;
 
   const createMutation = useMutation({
     mutationFn: departmentService.create,
     onSuccess: () => {
       queryClient.invalidateQueries(["departments"]);
+      queryClient.invalidateQueries(["employees"]);
+      toast.success("Department created successfully");
       setIsAddModalOpen(false);
     },
   });
@@ -35,6 +78,7 @@ export default function DepartmentsPage() {
     mutationFn: ({ id, data }) => departmentService.update(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries(["departments"]);
+      toast.success("Department updated successfully");
       setIsEditModalOpen(false);
       setCurrentDepartment(null);
     },
@@ -44,8 +88,15 @@ export default function DepartmentsPage() {
     mutationFn: departmentService.delete,
     onSuccess: () => {
       queryClient.invalidateQueries(["departments"]);
+      queryClient.invalidateQueries(["employees"]);
+      toast.success("Department deleted successfully");
       setIsDeleteModalOpen(false);
       setCurrentDepartment(null);
+    },
+    onError: (error) => {
+      toast.error(
+        error.response?.data?.message || "Failed to delete department"
+      );
     },
   });
 
@@ -77,14 +128,6 @@ export default function DepartmentsPage() {
     );
   }
 
-  if (error) {
-    return (
-      <div className="text-center py-12">
-        <p className="text-red-600 text-lg">Error loading departments: {error.message}</p>
-      </div>
-    );
-  }
-
   return (
     <div className="space-y-8">
       <div className="flex justify-between items-center">
@@ -100,9 +143,13 @@ export default function DepartmentsPage() {
         </button>
       </div>
 
-      <DepartmentTable departments={departments} onEdit={handleEdit} onDelete={handleDelete} />
+      <DepartmentTable
+        departments={enhancedDepartments}
+        onEdit={handleEdit}
+        onDelete={handleDelete}
+      />
 
-      {/* Modals for Add/Edit/Delete */}
+      {/* Modals */}
       <DepartmentModal isOpen={isAddModalOpen} onClose={() => setIsAddModalOpen(false)} title="Add New Department">
         <DepartmentForm onSubmit={handleAdd} onCancel={() => setIsAddModalOpen(false)} />
       </DepartmentModal>
