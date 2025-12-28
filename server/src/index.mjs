@@ -8,6 +8,7 @@ import cookieParser from 'cookie-parser';
 import employeeRoutes from './routes/employee.route.mjs';
 import leaveRoutes from './routes/leave.route.mjs';
 import attendanceRoutes from './routes/attendance.route.mjs';
+import payrollRoutes from './routes/payroll.route.mjs';
 
 
 const app = express();
@@ -24,6 +25,7 @@ app.use('/api/departments', departmentRoutes);
 app.use('/api/employees', employeeRoutes);
 app.use("/api/leaves", leaveRoutes);
 app.use("/api/attendance", attendanceRoutes);
+app.use("/api/payroll", payrollRoutes);
 
 const PORT = process.env.PORT || 3000;
 

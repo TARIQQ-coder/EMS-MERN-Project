@@ -1,3 +1,4 @@
+// src/controllers/employeeController.mjs
 import Employee from "../models/Employee.mjs";
 import Department from "../models/Department.mjs";
 
@@ -16,7 +17,10 @@ export const getEmployees = async (req, res) => {
 // Get single employee by ID
 export const getEmployeeById = async (req, res) => {
   try {
-    const employee = await Employee.findById(req.params.id).populate("department", "name");
+    const employee = await Employee.findById(req.params.id).populate(
+      "department",
+      "name"
+    );
     if (!employee) return res.status(404).json({ message: "Employee not found" });
     res.json(employee);
   } catch (err) {
@@ -26,7 +30,22 @@ export const getEmployeeById = async (req, res) => {
 
 // Create employee
 export const createEmployee = async (req, res) => {
-  const { name, email, phone, gender, address, department, role, joinDate, baseSalary, bonus } = req.body;
+  const {
+    name,
+    email,
+    phone,
+    gender,
+    address,
+    department,
+    role,
+    joinDate,
+    baseSalary = 0,
+    bonus = 0,
+    currency = "GHS",
+    payFrequency = "monthly",
+    taxRate = 0,
+    payrollNotes = "",
+  } = req.body;
 
   try {
     const employee = await Employee.create({
@@ -40,10 +59,20 @@ export const createEmployee = async (req, res) => {
       joinDate,
       baseSalary,
       bonus,
+      currency,
+      payFrequency,
+      taxRate,
+      payrollNotes,
     });
 
     await employee.populate("department", "name");
-    await Department.findByIdAndUpdate(department, { $inc: { employeeCount: 1 } });
+
+    // Increment department employee count
+    if (department) {
+      await Department.findByIdAndUpdate(department, {
+        $inc: { employeeCount: 1 },
+      });
+    }
 
     res.status(201).json(employee);
   } catch (err) {
@@ -56,26 +85,66 @@ export const createEmployee = async (req, res) => {
 
 // Update employee
 export const updateEmployee = async (req, res) => {
-  const { name, email, phone, gender, address, department, role, joinDate, baseSalary, bonus, status } = req.body;
+  const {
+    name,
+    email,
+    phone,
+    gender,
+    address,
+    department,
+    role,
+    joinDate,
+    baseSalary,
+    bonus,
+    currency,
+    payFrequency,
+    taxRate,
+    lastPaidDate,
+    nextPayDate,
+    payrollNotes,
+    status,
+  } = req.body;
 
   try {
     const employee = await Employee.findById(req.params.id);
     if (!employee) return res.status(404).json({ message: "Employee not found" });
 
-    employee.name = name || employee.name;
-    employee.email = email || employee.email;
+    // Track previous department for count adjustment
+    const previousDepartment = employee.department?.toString();
+
+    // Update fields
+    employee.name = name ?? employee.name;
+    employee.email = email ?? employee.email;
     employee.phone = phone ?? employee.phone;
     employee.gender = gender ?? employee.gender;
     employee.address = address ?? employee.address;
-    employee.role = role || employee.role;
-    employee.joinDate = joinDate || employee.joinDate;
+    employee.role = role ?? employee.role;
+    employee.joinDate = joinDate ? new Date(joinDate) : employee.joinDate;
     employee.baseSalary = baseSalary ?? employee.baseSalary;
     employee.bonus = bonus ?? employee.bonus;
+    employee.currency = currency ?? employee.currency;
+    employee.payFrequency = payFrequency ?? employee.payFrequency;
+    employee.taxRate = taxRate ?? employee.taxRate;
+    employee.lastPaidDate = lastPaidDate ? new Date(lastPaidDate) : employee.lastPaidDate;
+    employee.nextPayDate = nextPayDate ? new Date(nextPayDate) : employee.nextPayDate;
+    employee.payrollNotes = payrollNotes ?? employee.payrollNotes;
     employee.status = status ?? employee.status;
 
-    if (department && department !== employee.department.toString()) {
-      employee._previousDepartment = employee.department;
+    // Handle department transfer
+    if (department && department !== previousDepartment) {
       employee.department = department;
+
+      // Decrement old department count
+      if (previousDepartment) {
+        await Department.findByIdAndUpdate(previousDepartment, {
+          $inc: { employeeCount: -1 },
+        });
+      }
+
+      // Increment new department count
+      await Department.findByIdAndUpdate(department, {
+        $inc: { employeeCount: 1 },
+      });
     }
 
     await employee.save();
@@ -83,6 +152,7 @@ export const updateEmployee = async (req, res) => {
 
     res.json(employee);
   } catch (err) {
+    console.error("Update employee error:", err);
     res.status(500).json({ message: err.message });
   }
 };
@@ -93,10 +163,18 @@ export const deleteEmployee = async (req, res) => {
     const employee = await Employee.findById(req.params.id);
     if (!employee) return res.status(404).json({ message: "Employee not found" });
 
+    // Decrement department count
+    if (employee.department) {
+      await Department.findByIdAndUpdate(employee.department, {
+        $inc: { employeeCount: -1 },
+      });
+    }
+
     await employee.deleteOne();
 
-    res.json({ message: "Employee deleted" });
+    res.json({ message: "Employee deleted successfully" });
   } catch (err) {
+    console.error("Delete employee error:", err);
     res.status(500).json({ message: err.message });
   }
 };

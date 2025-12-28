@@ -17,11 +17,28 @@ import {
 import { useAuth } from "../../context/authContext.jsx";
 
 const navigation = [
-  { name: "Dashboard", href: "/admin-dashboard", icon: LayoutDashboard, end: true },
+  {
+    name: "Dashboard",
+    href: "/admin-dashboard",
+    icon: LayoutDashboard,
+    end: true,
+  },
   { name: "Employees", href: "/admin-dashboard/employees", icon: Users },
-  { name: "Departments", href: "/admin-dashboard/departments", icon: Building2 },
-  { name: "Leave Management", href: "/admin-dashboard/leaves", icon: CalendarDays },
-  { name: "Attendance", href: "/admin-dashboard/attendance", icon: ClipboardCheck },
+  {
+    name: "Departments",
+    href: "/admin-dashboard/departments",
+    icon: Building2,
+  },
+  {
+    name: "Leave Management",
+    href: "/admin-dashboard/leaves",
+    icon: CalendarDays,
+  },
+  {
+    name: "Attendance",
+    href: "/admin-dashboard/attendance",
+    icon: ClipboardCheck,
+  },
   { name: "Payroll", href: "/admin-dashboard/payroll", icon: DollarSign },
   { name: "Reports", href: "/admin-dashboard/reports", icon: FileText },
   { name: "User Management", href: "/admin-dashboard/users", icon: Shield },

@@ -17,6 +17,7 @@ import EmployeeDetailPage from "./pages/admin/EmployeeDetailPage.jsx";
 import DepartmentEmployeesPage from "./pages/admin/DepartmentEmployeesPage.jsx"; // ← Imported
 import LeavesPage from "./pages/admin/LeavesPage.jsx";
 import AttendanceDashboard from "./pages/admin/AttendanceDashboard.jsx";
+import PayrollDashboard from "./pages/admin/PayrollDashboard.jsx";
 import SettingsPage from "./pages/admin/SettingsPage.jsx";
 
 // Employee Pages
@@ -54,6 +55,7 @@ function App() {
             <Route path="departments/:id" element={<DepartmentEmployeesPage />} />
             <Route path="leaves" element={<LeavesPage />} />               {/* /admin-dashboard/leaves */}              {/* /admin-dashboard/salary */}
             <Route path="attendance" element={<AttendanceDashboard />} />   {/* /admin-dashboard/attendance */}
+            <Route path="payroll" element={<PayrollDashboard />} />         {/* /admin-dashboard/payroll */}
             <Route path="settings" element={<SettingsPage />} />           {/* /admin-dashboard/settings */}
           </Route>
 
