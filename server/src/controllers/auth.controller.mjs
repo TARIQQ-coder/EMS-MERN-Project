@@ -2,6 +2,7 @@
 import User from "../models/User.mjs";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
+import { logActivity } from "../utils/logger.mjs";
 import { z } from "zod";
 
 // Same validation schema as your frontend — NEVER trust the client
@@ -19,23 +20,22 @@ const loginSchema = z.object({
 
 export const loginUser = async (req, res) => {
   try {
-    // 1. SERVER-SIDE VALIDATION (this is the real protection)
     const parsed = loginSchema.safeParse(req.body);
 
     if (!parsed.success) {
       const firstError = parsed.error.errors[0];
       return res.status(400).json({
         success: false,
-        message: firstError.message, // "Email is required", "Invalid email format", etc.
+        message: firstError.message,
       });
     }
 
     const { email, password } = parsed.data;
 
-    // 2. Find user (case-insensitive)
+    // CRITICAL FIX: Explicitly select the password field
     const user = await User.findOne({
       email: { $regex: new RegExp(`^${email}$`, "i") },
-    });
+    }).select("+password"); // <-- This line is the fix!
 
     if (!user) {
       return res.status(401).json({
@@ -44,16 +44,9 @@ export const loginUser = async (req, res) => {
       });
     }
 
-    // 3. Optional: Block deactivated accounts
-    if (user.isActive === false) {
-      return res.status(403).json({
-        success: false,
-        message: "Account deactivated. Please contact HR.",
-      });
-    }
-
-    // 4. Verify password
+    // Now user.password exists → bcrypt.compare will work
     const isMatch = await bcrypt.compare(password, user.password);
+
     if (!isMatch) {
       return res.status(401).json({
         success: false,
@@ -89,6 +82,13 @@ export const loginUser = async (req, res) => {
         role: user.role,
       },
     });
+
+    // Inside login success block, after user.lastLogin and save()
+await logActivity({
+  req,
+  action: "login",
+  details: "User logged in successfully",
+});
 
   } catch (error) {
     console.error("Login error:", error);

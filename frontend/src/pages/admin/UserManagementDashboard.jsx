@@ -1,7 +1,9 @@
 // src/pages/admin/UserManagementDashboard.jsx
 import React, { useState } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { format } from "date-fns";
 import toast from "react-hot-toast";
+import axios from "axios";
 import {
   Users,
   UserPlus,
@@ -26,65 +28,26 @@ import {
   UserCheck,
 } from "lucide-react";
 
-// Mock Data
-let mockUsers = [
-  {
-    _id: "1",
-    name: "Alice Johnson",
-    email: "alice.johnson@example.com",
-    role: "Admin",
-    department: { _id: "1", name: "IT" },
-    status: "Active",
-    lastLogin: "2025-12-30T14:32:00Z",
-  },
-  {
-    _id: "2",
-    name: "Bob Smith",
-    email: "bob.smith@example.com",
-    role: "Manager",
-    department: { _id: "2", name: "Sales" },
-    status: "Active",
-    lastLogin: "2025-12-30T12:00:00Z",
-  },
-  {
-    _id: "3",
-    name: "Kwame Nkrumah",
-    email: "kwame@example.com",
-    role: "HR",
-    department: { _id: "3", name: "Human Resources" },
-    status: "Active",
-    lastLogin: "2025-12-29T10:15:00Z",
-  },
-  {
-    _id: "4",
-    name: "Abena Mensah",
-    email: "abena@example.com",
-    role: "Employee",
-    department: { _id: "4", name: "Marketing" },
-    status: "Active",
-    lastLogin: "2025-12-30T09:45:00Z",
-  },
-  {
-    _id: "5",
-    name: "Kofi Annan",
-    email: "kofi@example.com",
-    role: "Manager",
-    department: { _id: "5", name: "Finance" },
-    status: "Inactive",
-    lastLogin: "2025-11-20T16:30:00Z",
-  },
-];
+// API Services
+const api = axios.create({
+  baseURL: "/api",
+});
 
-const mockDepartments = [
-  { _id: "1", name: "IT" },
-  { _id: "2", name: "Sales" },
-  { _id: "3", name: "Human Resources" },
-  { _id: "4", name: "Marketing" },
-  { _id: "5", name: "Finance" },
-  { _id: "6", name: "Operations" },
-];
+const userService = {
+  getAll: () => api.get("/users").then((res) => res.data),
+  create: (data) => api.post("/users", data).then((res) => res.data),
+  update: (id, data) => api.patch(`/users/${id}`, data).then((res) => res.data),
+  delete: (id) => api.delete(`/users/${id}`),
+  resetPassword: (id) => api.post(`/users/${id}/reset-password`),
+  toggleStatus: (id, status) =>
+    api.patch(`/users/${id}/status`, { status }).then((res) => res.data),
+};
 
-// Role Permissions Definition
+const departmentService = {
+  getAll: () => api.get("/departments").then((res) => res.data),
+};
+
+// Role Permissions
 const defaultRolePermissions = {
   Admin: {
     canViewPayroll: true,
@@ -136,80 +99,28 @@ const COLORS = {
   Employee: "text-green-600 bg-green-50",
 };
 
-// NEW: Mock Activity Log
-const mockActivityLog = [
-  {
-    id: "log1",
-    timestamp: "2025-12-30T14:45:00Z",
-    actor: "Alice Johnson",
-    action: "user_added",
-    target: "Kwame Nkrumah",
-    details: "Added new HR user",
-  },
-  {
-    id: "log2",
-    timestamp: "2025-12-30T13:20:00Z",
-    actor: "Alice Johnson",
-    action: "user_edited",
-    target: "Bob Smith",
-    details: "Changed role to Manager",
-  },
-  {
-    id: "log3",
-    timestamp: "2025-12-30T11:10:00Z",
-    actor: "Alice Johnson",
-    action: "password_reset",
-    target: "Abena Mensah",
-    details: "Password reset requested",
-  },
-  {
-    id: "log4",
-    timestamp: "2025-12-29T16:30:00Z",
-    actor: "Alice Johnson",
-    action: "user_deactivated",
-    target: "Kofi Annan",
-    details: "Deactivated user account",
-  },
-  {
-    id: "log5",
-    timestamp: "2025-12-29T10:05:00Z",
-    actor: "Bob Smith",
-    action: "permission_updated",
-    target: "Manager",
-    details: "Enabled 'View Reports' permission",
-  },
-  {
-    id: "log6",
-    timestamp: "2025-12-28T15:50:00Z",
-    actor: "Alice Johnson",
-    action: "user_deleted",
-    target: "John Doe",
-    details: "Permanently removed user",
-  },
-];
-
+// Add this after the COLORS object
 const actionIcons = {
-  user_added: <UserPlus className="w-5 h-5 text-green-600" />,
-  user_edited: <Edit className="w-5 h-5 text-blue-600" />,
+  login: <UserCheck className="w-5 h-5 text-indigo-600" />,
+  user_created: <UserPlus className="w-5 h-5 text-green-600" />,
+  user_updated: <Edit className="w-5 h-5 text-blue-600" />,
   user_deleted: <Trash2 className="w-5 h-5 text-red-600" />,
-  user_deactivated: <UserX className="w-5 h-5 text-orange-600" />,
-  user_activated: <UserCheck className="w-5 h-5 text-green-600" />,
-  password_reset: <Key className="w-5 h-5 text-purple-600" />,
-  permission_updated: <Lock className="w-5 h-5 text-indigo-600" />,
+  user_status_toggled: <UserX className="w-5 h-5 text-orange-600" />,
+  password_reset_requested: <Key className="w-5 h-5 text-purple-600" />,
 };
 
 const actionColors = {
-  user_added: "bg-green-50 border-green-200",
-  user_edited: "bg-blue-50 border-blue-200",
+  login: "bg-indigo-50 border-indigo-200",
+  user_created: "bg-green-50 border-green-200",
+  user_updated: "bg-blue-50 border-blue-200",
   user_deleted: "bg-red-50 border-red-200",
-  user_deactivated: "bg-orange-50 border-orange-200",
-  user_activated: "bg-green-50 border-green-200",
-  password_reset: "bg-purple-50 border-purple-200",
-  permission_updated: "bg-indigo-50 border-indigo-200",
+  user_status_toggled: "bg-orange-50 border-orange-200",
+  password_reset_requested: "bg-purple-50 border-purple-200",
 };
 
 export default function UserManagementDashboard() {
-  const [activeTab, setActiveTab] = useState("users"); // "users" or "roles"
+  const queryClient = useQueryClient();
+  const [activeTab, setActiveTab] = useState("users");
   const [searchTerm, setSearchTerm] = useState("");
   const [roleFilter, setRoleFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
@@ -218,10 +129,8 @@ export default function UserManagementDashboard() {
   const [showEditUserModal, setShowEditUserModal] = useState(false);
   const [editingUser, setEditingUser] = useState(null);
 
-  const [users, setUsers] = useState(mockUsers);
   const [permissions, setPermissions] = useState(defaultRolePermissions);
 
-  // Form states
   const [newUser, setNewUser] = useState({
     name: "",
     email: "",
@@ -237,10 +146,29 @@ export default function UserManagementDashboard() {
     department: "",
   });
 
+  // Fetch data
+  const {
+    data: rawUsers,
+    isLoading: usersLoading,
+    error: usersError,
+  } = useQuery({
+    queryKey: ["users"],
+    queryFn: userService.getAll,
+  });
+
+  const { data: rawDepartments, isLoading: deptsLoading } = useQuery({
+    queryKey: ["departments"],
+    queryFn: departmentService.getAll,
+  });
+
+  // SAFE: Ensure we always have arrays
+  const users = Array.isArray(rawUsers) ? rawUsers : [];
+  const departments = Array.isArray(rawDepartments) ? rawDepartments : [];
+
   const filteredUsers = users.filter((user) => {
     const matchesSearch =
-      user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      user.email.toLowerCase().includes(searchTerm.toLowerCase());
+      user.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      user.email?.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesRole = roleFilter === "all" || user.role === roleFilter;
     const matchesStatus =
       statusFilter === "all" || user.status === statusFilter;
@@ -254,52 +182,71 @@ export default function UserManagementDashboard() {
     managers: users.filter((u) => u.role === "Manager").length,
   };
 
-  // Add User
+  // Mutations (same as before)
+  const createUserMutation = useMutation({
+    mutationFn: userService.create,
+    onSuccess: () => {
+      queryClient.invalidateQueries(["users"]);
+      toast.success("User created successfully!");
+      setShowAddUserModal(false);
+      setNewUser({
+        name: "",
+        email: "",
+        role: "Employee",
+        department: "",
+        password: "",
+      });
+    },
+    onError: (err) =>
+      toast.error(err.response?.data?.message || "Failed to create user"),
+  });
+
+  const updateUserMutation = useMutation({
+    mutationFn: ({ id, data }) => userService.update(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries(["users"]);
+      toast.success("User updated successfully!");
+      setShowEditUserModal(false);
+    },
+    onError: (err) =>
+      toast.error(err.response?.data?.message || "Failed to update user"),
+  });
+
+  const deleteUserMutation = useMutation({
+    mutationFn: userService.delete,
+    onSuccess: () => {
+      queryClient.invalidateQueries(["users"]);
+      toast.success("User deleted");
+    },
+    onError: (err) =>
+      toast.error(err.response?.data?.message || "Failed to delete user"),
+  });
+
+  const resetPasswordMutation = useMutation({
+    mutationFn: userService.resetPassword,
+    onSuccess: () => toast.success("Password reset email sent"),
+    onError: () => toast.error("Failed to send reset email"),
+  });
+
+  const toggleStatusMutation = useMutation({
+    mutationFn: ({ id, status }) => userService.toggleStatus(id, status),
+    onSuccess: () => {
+      queryClient.invalidateQueries(["users"]);
+      toast.success("Status updated");
+    },
+  });
+
   const handleAddUser = (e) => {
     e.preventDefault();
-    if (!newUser.name || !newUser.email || !newUser.password) {
-      toast.error("Please fill in all required fields");
-      return;
-    }
-
-    const departmentObj = mockDepartments.find(
-      (d) => d._id === newUser.department
-    );
-
-    const addedUser = {
-      _id: Date.now().toString(),
-      name: newUser.name,
-      email: newUser.email,
-      role: newUser.role,
-      department: departmentObj
-        ? { _id: departmentObj._id, name: departmentObj.name }
-        : null,
-      status: "Active",
-      lastLogin: null,
-    };
-
-    setUsers([...users, addedUser]);
-    toast.success(
-      `User "${newUser.name}" added successfully! Invitation email sent.`
-    );
-
-    setNewUser({
-      name: "",
-      email: "",
-      role: "Employee",
-      department: "",
-      password: "",
-    });
-    setShowAddUserModal(false);
+    createUserMutation.mutate(newUser);
   };
 
-  // Edit User
   const openEditModal = (user) => {
     setEditingUser(user);
     setEditUser({
-      name: user.name,
-      email: user.email,
-      role: user.role,
+      name: user.name || "",
+      email: user.email || "",
+      role: user.role || "Employee",
       department: user.department?._id || "",
     });
     setShowEditUserModal(true);
@@ -307,73 +254,27 @@ export default function UserManagementDashboard() {
 
   const handleEditUser = (e) => {
     e.preventDefault();
-
-    const departmentObj = mockDepartments.find(
-      (d) => d._id === editUser.department
-    );
-
-    setUsers(
-      users.map((u) =>
-        u._id === editingUser._id
-          ? {
-              ...u,
-              name: editUser.name,
-              email: editUser.email,
-              role: editUser.role,
-              department: departmentObj
-                ? { _id: departmentObj._id, name: departmentObj.name }
-                : null,
-            }
-          : u
-      )
-    );
-
-    toast.success(`User "${editUser.name}" updated successfully!`);
-    setShowEditUserModal(false);
-    setEditingUser(null);
-  };
-
-  // Toggle Status & Delete
-  const toggleUserStatus = (userId) => {
-    setUsers(
-      users.map((u) =>
-        u._id === userId
-          ? { ...u, status: u.status === "Active" ? "Inactive" : "Active" }
-          : u
-      )
-    );
-    toast.success("User status updated");
-  };
-
-  const deleteUser = (userId) => {
-    if (window.confirm("Delete this user? This action cannot be undone.")) {
-      setUsers(users.filter((u) => u._id !== userId));
-      toast.success("User deleted");
-    }
-  };
-
-  const handleBulkAction = (action) => {
-    if (selectedUsers.length === 0) {
-      toast.error("No users selected");
-      return;
-    }
-    toast.success(`Bulk ${action} performed on ${selectedUsers.length} users`);
-    setSelectedUsers([]);
-  };
-
-  // Permission toggle
-  const handlePermissionChange = (role, permission) => {
-    setPermissions({
-      ...permissions,
-      [role]: {
-        ...permissions[role],
-        [permission]: !permissions[role][permission],
+    updateUserMutation.mutate({
+      id: editingUser._id,
+      data: {
+        name: editUser.name,
+        email: editUser.email,
+        role: editUser.role,
+        department: editUser.department || null,
       },
     });
-    toast.success(
-      `Permission "${permissionLabels[permission]}" toggled for ${role}`
-    );
   };
+
+  // Add this query for real activity logs
+const {
+  data: activityLogs = [],
+  isLoading: logsLoading,
+  error: logsError,
+} = useQuery({
+  queryKey: ["activity-logs"],
+  queryFn: () => api.get("/activity-logs").then((res) => res.data),
+  enabled: activeTab === "activity", // Only fetch when tab is active
+});
 
   const UserRow = ({ user }) => (
     <tr className="border-b hover:bg-gray-50 transition">
@@ -392,7 +293,7 @@ export default function UserManagementDashboard() {
       </td>
       <td className="py-4 px-6">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-purple-700 rounded-full flex items-center justify-center text-white font-bold">
+          <div className="w-10 h-10 bg-linear-to-br from-purple-500 to-purple-700 rounded-full flex items-center justify-center text-white font-bold">
             {user.name.charAt(0).toUpperCase()}
           </div>
           <div>
@@ -433,24 +334,20 @@ export default function UserManagementDashboard() {
       </td>
       <td className="py-4 px-6">
         <div className="flex items-center gap-2">
-          <button
-            onClick={() => openEditModal(user)}
-            className="p-2 hover:bg-gray-100 rounded-lg transition"
-            title="Edit User"
-          >
+          <button onClick={() => openEditModal(user)} title="Edit User">
             <Edit className="w-4 h-4 text-blue-600" />
           </button>
           <button
-            onClick={() => toast.success("Password reset email sent")}
-            className="p-2 hover:bg-gray-100 rounded-lg transition"
+            onClick={() => resetPasswordMutation.mutate(user._id)}
             title="Reset Password"
           >
             <Key className="w-4 h-4 text-gray-600" />
           </button>
           <button
-            onClick={() => toggleUserStatus(user._id)}
-            className="p-2 hover:bg-gray-100 rounded-lg transition"
-            title={user.status === "Active" ? "Deactivate" : "Activate"}
+            onClick={() =>
+              toggleStatusMutation.mutate({ id: user._id, status: user.status })
+            }
+            title="Toggle Status"
           >
             {user.status === "Active" ? (
               <Ban className="w-4 h-4 text-red-600" />
@@ -459,8 +356,7 @@ export default function UserManagementDashboard() {
             )}
           </button>
           <button
-            onClick={() => deleteUser(user._id)}
-            className="p-2 hover:bg-red-50 rounded-lg transition"
+            onClick={() => deleteUserMutation.mutate(user._id)}
             title="Delete User"
           >
             <Trash2 className="w-4 h-4 text-red-600" />
@@ -470,12 +366,37 @@ export default function UserManagementDashboard() {
     </tr>
   );
 
+  // Loading & Error States
+  if (usersLoading || deptsLoading) {
+    return (
+      <div className="flex items-center justify-center h-96">
+        <Loader2 className="w-12 h-12 animate-spin text-purple-700" />
+        <p className="ml-4 text-gray-600">Loading dashboard...</p>
+      </div>
+    );
+  }
+
+  if (usersError) {
+    return (
+      <div className="text-center py-12 text-red-600">
+        Failed to load users: {usersError.message}
+        <button
+          onClick={() => queryClient.invalidateQueries(["users"])}
+          className="ml-4 px-4 py-2 bg-purple-600 text-white rounded-lg"
+        >
+          Retry
+        </button>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-8 p-6">
       {/* Tabs */}
       <div className="border-b border-gray-200">
         <div className="flex gap-8">
           <button
+            type="button" // ← ADD THIS
             onClick={() => setActiveTab("users")}
             className={`pb-4 px-1 border-b-2 font-medium transition flex items-center gap-2 ${
               activeTab === "users"
@@ -487,6 +408,7 @@ export default function UserManagementDashboard() {
             Users
           </button>
           <button
+            type="button" // ← ADD THIS
             onClick={() => setActiveTab("roles")}
             className={`pb-4 px-1 border-b-2 font-medium transition flex items-center gap-2 ${
               activeTab === "roles"
@@ -498,6 +420,7 @@ export default function UserManagementDashboard() {
             Roles & Permissions
           </button>
           <button
+            type="button" // ← ADD THIS
             onClick={() => setActiveTab("activity")}
             className={`pb-4 px-1 border-b-2 font-medium transition flex items-center gap-2 ${
               activeTab === "activity"
@@ -808,50 +731,70 @@ export default function UserManagementDashboard() {
         </div>
       )}
 
-        {/* NEW: Activity Log Tab */}
-      {activeTab === "activity" && (
-        <div className="space-y-8">
-          <div className="bg-white rounded-2xl shadow-lg overflow-hidden">
-            <div className="p-6 border-b">
-              <h2 className="text-2xl font-bold text-gray-800">System Activity Log</h2>
-              <p className="text-gray-600 mt-1">Track all admin actions and changes</p>
-            </div>
+      {/* Activity Log Tab */}
+{activeTab === "activity" && (
+  <div className="space-y-8">
+    <div className="bg-white rounded-2xl shadow-lg overflow-hidden">
+      <div className="p-6 border-b">
+        <h2 className="text-2xl font-bold text-gray-800">System Activity Log</h2>
+        <p className="text-gray-600 mt-1">Track all admin actions and changes</p>
+      </div>
 
-            <div className="p-6">
-              <div className="space-y-4">
-                {mockActivityLog.map((log) => (
-                  <div
-                    key={log.id}
-                    className={`p-5 rounded-xl border ${actionColors[log.action] || "bg-gray-50 border-gray-200"}`}
-                  >
-                    <div className="flex items-start gap-4">
-                      <div className="p-3 bg-white rounded-lg shadow-sm">
-                        {actionIcons[log.action] || <Activity className="w-5 h-5 text-gray-600" />}
-                      </div>
-                      <div className="flex-1">
-                        <div className="flex items-center gap-3 mb-1">
-                          <p className="font-semibold text-gray-900">{log.actor}</p>
-                          <span className="text-sm text-gray-500">•</span>
-                          <p className="text-sm text-gray-600">
-                            {format(new Date(log.timestamp), "MMM d, yyyy 'at' HH:mm")}
-                          </p>
-                        </div>
-                        <p className="text-gray-700">
-                          <span className="font-medium">{log.target}</span> — {log.details}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              <div className="mt-8 text-center text-sm text-gray-500">
-                Showing last 6 activities • Real system would show all historical logs
-              </div>
-            </div>
+      <div className="p-6">
+        {logsLoading ? (
+          <div className="flex items-center justify-center py-12">
+            <Loader2 className="w-8 h-8 animate-spin text-purple-600" />
+            <p className="ml-3 text-gray-600">Loading activity logs...</p>
           </div>
-        </div>
-      )}
+        ) : logsError ? (
+          <div className="text-center py-12 text-red-600">
+            Failed to load logs: {logsError.message || "Unknown error"}
+          </div>
+        ) : !Array.isArray(activityLogs) || activityLogs.length === 0 ? (
+          <div className="text-center py-12 text-gray-500">
+            No activity recorded yet
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {activityLogs.map((log) => (
+              <div
+                key={log._id || log.id}
+                className={`p-5 rounded-xl border ${
+                  actionColors[log.action] || "bg-gray-50 border-gray-200"
+                }`}
+              >
+                <div className="flex items-start gap-4">
+                  <div className="p-3 bg-white rounded-lg shadow-sm">
+                    {actionIcons[log.action] || <Activity className="w-5 h-5 text-gray-600" />}
+                  </div>
+                  <div className="flex-1">
+                    <div className="flex items-center gap-3 mb-1">
+                      <p className="font-semibold text-gray-900">
+                        {log.actorName || "Unknown User"}
+                      </p>
+                      <span className="text-sm text-gray-500">•</span>
+                      <p className="text-sm text-gray-600">
+                        {log.createdAt
+                          ? format(new Date(log.createdAt), "MMM d, yyyy 'at' HH:mm")
+                          : "Unknown time"}
+                      </p>
+                    </div>
+                    <p className="text-gray-700">
+                      <span className="font-medium">
+                        {log.targetName || "System"}
+                      </span>{" "}
+                      — {log.details || "No details"}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  </div>
+)}
 
       {/* Add User Modal */}
       {showAddUserModal && (
@@ -930,7 +873,7 @@ export default function UserManagementDashboard() {
                   className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500"
                 >
                   <option value="">Select Department</option>
-                  {mockDepartments.map((dept) => (
+                  {departments.map((dept) => (
                     <option key={dept._id} value={dept._id}>
                       {dept.name}
                     </option>
@@ -960,9 +903,12 @@ export default function UserManagementDashboard() {
               <div className="flex gap-4 pt-6">
                 <button
                   type="submit"
-                  className="flex-1 px-6 py-3 bg-purple-600 hover:bg-purple-700 text-white font-medium rounded-xl transition shadow-lg"
+                  disabled={createUserMutation.isPending}
+                  className="flex-1 px-6 py-3 bg-purple-600 hover:bg-purple-700 text-white font-medium rounded-xl transition shadow-lg disabled:opacity-70"
                 >
-                  Send Invitation
+                  {createUserMutation.isPending
+                    ? "Creating..."
+                    : "Send Invitation"}
                 </button>
                 <button
                   type="button"
@@ -1055,7 +1001,7 @@ export default function UserManagementDashboard() {
                   className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500"
                 >
                   <option value="">No Department</option>
-                  {mockDepartments.map((dept) => (
+                  {departments.map((dept) => (
                     <option key={dept._id} value={dept._id}>
                       {dept.name}
                     </option>
@@ -1066,9 +1012,10 @@ export default function UserManagementDashboard() {
               <div className="flex gap-4 pt-6">
                 <button
                   type="submit"
-                  className="flex-1 px-6 py-3 bg-purple-600 hover:bg-purple-700 text-white font-medium rounded-xl transition shadow-lg"
+                  disabled={updateUserMutation.isPending}
+                  className="flex-1 px-6 py-3 bg-purple-600 hover:bg-purple-700 text-white font-medium rounded-xl transition shadow-lg disabled:opacity-70"
                 >
-                  Save Changes
+                  {updateUserMutation.isPending ? "Saving..." : "Save Changes"}
                 </button>
                 <button
                   type="button"
