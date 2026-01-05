@@ -9,6 +9,7 @@ import employeeRoutes from './routes/employee.route.mjs';
 import leaveRoutes from './routes/leave.route.mjs';
 import attendanceRoutes from './routes/attendance.route.mjs';
 import payrollRoutes from './routes/payroll.route.mjs';
+import settingsRoutes from './routes/settings.route.mjs';
 
 
 const app = express();
@@ -26,6 +27,7 @@ app.use('/api/employees', employeeRoutes);
 app.use("/api/leaves", leaveRoutes);
 app.use("/api/attendance", attendanceRoutes);
 app.use("/api/payroll", payrollRoutes);
+app.use("/api/settings", settingsRoutes);
 
 const PORT = process.env.PORT || 3000;
 
